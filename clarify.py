@@ -14,6 +14,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 SECRET_KEY = "dev-secret-key"
 algorithm = "HS256"
 bear_scheme = HTTPBearer()
+DB_PATH = os.environ.get("DB_PATH","clarify.db")
 
 app = FastAPI()
 
@@ -28,7 +29,7 @@ class User(BaseModel):
     password:str
     
 def get_conn():
-    conn = sqlite3.connect("clarify.db")
+    conn = sqlite3.connect("DB_PATH")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -174,7 +175,7 @@ def update_transaction(transaction_id:int, transaction: Transactions,user_id:int
     conn = get_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute("UPDATE transactions SET description = ?, amount = ? date = ? category = ? WHERE id = ? and user_id = ?",(transaction.description,transaction.amount,transaction.date, transaction.category,transaction_id,user_id))
+        cursor.execute("UPDATE transactions SET description = ?, amount = ?, date = ?, category = ? WHERE id = ? and user_id = ?",(transaction.description,transaction.amount,transaction.date, transaction.category,transaction_id,user_id))
         updated = cursor.rowcount
         if updated == 0:
             raise HTTPException(status_code = 404, detail = "Transaction ID not found")
@@ -188,7 +189,7 @@ def update_transaction(transaction_id:int, transaction: Transactions,user_id:int
         conn.close()
         
 @app.get("/summary")
-def get_month_summary(month,user_id:int = Depends(get_current_user_id)):
+def get_month_summary(month, category = None, user_id:int = Depends(get_current_user_id)):
     try:
         datetime.strptime(month,'%Y-%m')
     except ValueError:
@@ -196,7 +197,14 @@ def get_month_summary(month,user_id:int = Depends(get_current_user_id)):
     conn = get_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = ? and strftime('%Y-%m',date)= ? GROUP BY category",(user_id,month))
+        sql = "SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = ? and strftime('%Y-%m',date)= ?"
+        params = [user_id,month]
+        if category != None:
+            sql+= "AND category = ?"
+            params.append(category)
+        #cursor.execute("SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = ? and strftime('%Y-%m',date)= ? GROUP BY category",(user_id,month))
+        sql+="GROUP BY category"
+        cursor.execute(sql,params)
         output = cursor.fetchall()
         result = []
         for row in output:
