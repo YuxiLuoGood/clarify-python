@@ -10,6 +10,7 @@ def client():
     conn = get_conn()
     conn.execute("DELETE FROM transactions")
     conn.execute("DELETE FROM users")
+    conn.execute("DELETE FROM budgets")
     conn.commit()
     conn.close()
     return TestClient(app)

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 import json
 import os
 import sqlite3
@@ -27,6 +27,10 @@ class Transactions(BaseModel):
 class User(BaseModel):
     user_name:str
     password:str
+
+class Budget(BaseModel):
+    category:str
+    monthly_limit:float = Field(ge = 0)
     
 def get_conn():
     conn = sqlite3.connect("DB_PATH")
@@ -48,6 +52,12 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(bear
         return int(decoded["sub"])
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401,detail="Token expired or not allowed")
+    
+def month_validate(month:str):
+    try:
+        datetime.strptime(month,"%Y-%m")
+    except ValueError:
+        raise HTTPException(status_code= 400, detail="Month format error.")
 
 #test###
     conn = get_conn()
@@ -77,6 +87,15 @@ try:
                     user_name TEXT NOT NULL UNIQUE,
                     password_hash TEXT NOT NULL,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+    cursor.execute("""
+                CREATE TABLE IF NOT EXISTS budgets(
+                    budget_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL REFERENCES users(user_id),
+                    category TEXT NOT NULL,
+                    monthly_limit REAL NOT NULL,
+                    UNIQUE(user_id, category)
                 )
                 """)
     conn.commit()
@@ -190,10 +209,7 @@ def update_transaction(transaction_id:int, transaction: Transactions,user_id:int
         
 @app.get("/summary")
 def get_month_summary(month, category = None, user_id:int = Depends(get_current_user_id)):
-    try:
-        datetime.strptime(month,'%Y-%m')
-    except ValueError:
-        raise HTTPException(status_code=400,detail="Datetime format error")
+    month_validate(month)
     conn = get_conn()
     cursor = conn.cursor()
     try:
@@ -211,6 +227,53 @@ def get_month_summary(month, category = None, user_id:int = Depends(get_current_
             row = dict(row)
             result.append(row)
         return result
+    finally:
+        conn.close()
+        
+@app.put("/budget")
+def set_budget(budget: Budget, user_id : int = Depends(get_current_user_id)):
+    conn = get_conn()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""INSERT INTO budgets(user_id,category,monthly_limit) VALUES (?,?,?) 
+                       ON CONFLICT(user_id,category) DO UPDATE SET monthly_limit = excluded.monthly_limit"""
+                       ,(user_id,budget.category,budget.monthly_limit))
+        conn.commit()
+        return {"message":"Set budget successfully."}
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+@app.get("/budget/status")
+def get_status(month,user_id:int = Depends(get_current_user_id)):
+    month_validate(month)
+    conn = get_conn()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+                    SELECT b.category,b.monthly_limit,COALESCE(t.total,0) AS total
+                    FROM budgets AS b
+                    LEFT JOIN(
+                        SELECT category, SUM(amount) AS total
+                        FROM transactions
+                        WHERE user_id =? AND strftime('%Y-%m',date) = ?
+                        GROUP BY category
+                    ) AS t 
+                        ON b.category = t.category
+                    WHERE b.user_id = ? 
+                    ORDER BY b.category
+                    """,(user_id,month,user_id))
+        output = cursor.fetchall()
+        result = []
+        for out in output:
+            remaining = out["monthly_limit"]-out["total"]
+            category = out["category"]
+            result.append({"category":category,"monthly_limit":out["monthly_limit"],"spent":out["total"],"remaining":remaining})
+        return result
+    except Exception:
+        raise  
     finally:
         conn.close()
         
