@@ -3,7 +3,8 @@ os.environ["DB_PATH"] = "test.db"
 
 import pytest
 from fastapi.testclient import TestClient
-from clarify import app, get_conn
+from app.main import app
+from app.database import get_conn
 
 @pytest.fixture
 def client():
