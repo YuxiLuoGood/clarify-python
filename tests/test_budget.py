@@ -8,8 +8,8 @@ def auth_header(token):
 
 def test_set_budget_success(client):
     token1 = get_token(client,"Tom","123456")
-    response1 = client.put("/budget",headers = auth_header(token1),json = {"category":"Food","monthly_limit":500})
-    response2 = client.put("/budget",headers = auth_header(token1),json = {"category":"Transportation","monthly_limit":120})
+    response1 = client.put("/budget",headers = auth_header(token1),json = {"category":"Food","monthly_limit":500,"month":"2026-10"})
+    response2 = client.put("/budget",headers = auth_header(token1),json = {"category":"Transportation","monthly_limit":120,"month":"2026-10"})
     assert response1.json()["message"] == "Set budget successfully."
     assert response2.json()["message"] == "Set budget successfully."
     assert response1.status_code == 200
@@ -17,15 +17,15 @@ def test_set_budget_success(client):
 
 def test_set_budget_wrong_format(client):
     token1 = get_token(client,"Tom","123456")
-    response = client.put("/budget",headers = auth_header(token1),json = {"category":"Food","monthly_limit":-500})
+    response = client.put("/budget",headers = auth_header(token1),json = {"category":"Food","monthly_limit":-500,"month":"2026-10"})
     assert response.status_code == 422
 
 def test_budget_status_success(client):
     token1 = get_token(client,"Tom","123456")
-    token2 = get_token(client,"Amy","123")
-    client.put("/budget",headers = auth_header(token1),json = {"category":"food","monthly_limit":500})
-    client.put("/budget",headers = auth_header(token1),json = {"category":"transportation","monthly_limit":120})
-    client.put("/budget",headers = auth_header(token1),json = {"category":"food","monthly_limit":400})
+    token2 = get_token(client,"Amy","123456")
+    client.put("/budget",headers = auth_header(token1),json = {"category":"food","monthly_limit":500,"month":"2026-10"})
+    client.put("/budget",headers = auth_header(token1),json = {"category":"transportation","monthly_limit":120,"month":"2026-10"})
+    client.put("/budget",headers = auth_header(token1),json = {"category":"food","monthly_limit":400,"month":"2026-10"})
     client.post("/transaction",headers = auth_header(token1),json = {"description":"popeyes","amount":12,"date":"2026-10-12","category":"food"})
     client.post("/transaction",headers = auth_header(token1),json = {"description":"popeyes","amount":18,"date":"2026-09-12","category":"food"})
     response = client.get("/budget/status",headers = auth_header(token1),params = {"month":"2026-10"})
@@ -36,7 +36,7 @@ def test_budget_status_success(client):
     assert data["transportation"]["remaining"] == 120
     assert len(response.json()) == 2
     assert response2.json() == []
-    assert response3.status_code == 400
+    assert response3.status_code == 422
     
 
 

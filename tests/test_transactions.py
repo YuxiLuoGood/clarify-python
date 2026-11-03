@@ -11,6 +11,11 @@ def auth_header(token):
 def test_get_transaction_without_token(client):
     response = client.get("/transaction")
     assert response.status_code == 401
+    
+def test_add_transaction(client):
+    token1 = get_token(client,"Tom",password="123456")
+    response = client.post("/transaction",headers = auth_header(token1),json = {"description":"popeyes","amount":12,"date":"2026-15-12","category":"food"})
+    assert response.status_code == 422
 
 def test_get_transaction(client):
     token1 = get_token(client,"Tom",password="123456")

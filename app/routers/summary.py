@@ -15,13 +15,13 @@ def get_month_summary(month, category = None, user_id:int = Depends(get_current_
     conn = get_conn()
     cursor = conn.cursor()
     try:
-        sql = "SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = ? and strftime('%Y-%m',date)= ?"
+        sql = "SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = %s and to_char(date,'YYYY-MM')= %s"
         params = [user_id,month]
         if category != None:
-            sql+= "AND category = ?"
+            sql+= " AND category = %s"
             params.append(category)
-        #cursor.execute("SELECT category, SUM(amount) AS total FROM transactions WHERE user_id = ? and strftime('%Y-%m',date)= ? GROUP BY category",(user_id,month))
-        sql+="GROUP BY category"
+        
+        sql+=" GROUP BY category"
         cursor.execute(sql,params)
         output = cursor.fetchall()
         result = []

@@ -1,6 +1,5 @@
-clarify.db
-test.db
 __pycache__/
+app/__pycache__
 .pytest_cache/
 .env
 venv/

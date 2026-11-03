@@ -24,7 +24,7 @@ def test_summary_wrong_format_month(client):
     client.post("/transaction",headers = auth_header(token1),json = {"description":"grocery","amount":58,"date":"2026-10-09","category":"shopping"})
     client.post("/transaction",headers = auth_header(token1),json = {"description":"grocery","amount":58,"date":"2026-09-09","category":"shopping"})  
     response = client.get("/summary",headers = auth_header(token1),params = {"month":"2026"})
-    assert response.status_code == 400
+    assert response.status_code == 422
     
 def test_summary_with_month_category_success(client):
     token1 = get_token(client,"Tom",password="123456")

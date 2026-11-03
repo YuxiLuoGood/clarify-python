@@ -6,5 +6,5 @@ def test_register_success(client):
 def test_register_duplicate(client):
     client.post("/register",json = {"user_name":"Tom","password":"123456"})
     response = client.post("/register",json = {"user_name":"Tom","password":"123456"})
-    assert response.status_code == 400
+    assert response.status_code == 409
     
