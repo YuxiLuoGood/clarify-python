@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { getErrorMessage } from "../utils"
+import {loginRequest} from "../api"
 
 type LoginFormProps = {
     onLogin:(token:string) => void
@@ -12,27 +12,12 @@ function LoginForm({onLogin}:LoginFormProps){
     const [errorMessage,setErrorMessage] = useState("")
     async function handleLogin(){
         try{
-            const response = await fetch("http://127.0.0.1:8000/login",{
-            method: "POST",
-            headers:{"Content-Type": "application/json" },
-            body:JSON.stringify({user_name:userName,password:password})
-            })
-        
-            const data = await response.json()
-
-            if (response.ok){
-                onLogin(data.access_token)
-                setErrorMessage("")
-
-            }
-            else{
-                setErrorMessage(getErrorMessage(data.detail))
-            }
-            console.log(data)
+            const token = await loginRequest(userName, password)
+            onLogin(token)
         }
         catch(error){
             console.error(error)
-            setErrorMessage("Cannot connect to the server.")
+            setErrorMessage(error instanceof Error ? error.message : "Something went wrong.")
         }
 
     }

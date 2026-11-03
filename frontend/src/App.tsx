@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import {type Transaction} from "./types"
-import TransactionList from "./components/TransactionList"
-import { getErrorMessage,getCurrentMonth } from "./utils"
-import LoginForm from "./components/LoginForm"
-import AddTransactionForm from "./components/AddTransactionForm"
-import TotalSummary from "./components/TotalSummary"
-import BudgetStatusList from "./components/BudgetStatusList"
-import SetBudgetForm from "./components/SetBudgetForm"
+import { getErrorMessage } from "./utils"
+import { Routes, Route, NavLink, Navigate } from "react-router"
+import TransactionsPage from "./pages/TransactionsPage"
+import OverviewPages from "./pages/OverviewPage"
+import BudgetsPage from "./pages/BudgetsPage"
+import LoginPage from "./pages/LoginPage"
+import RegisterPage from "./pages/RegisterPage"
 
 
 
@@ -19,7 +19,6 @@ function App() {
   const [errorMessage,setErrorMessage] = useState("")
   const [token,setToken] = useState(()=>localStorage.getItem("token")??"")
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [selectedMonth,setSelectedMonth] = useState(getCurrentMonth)
   const [budgetVersion, setBudgetVersion] = useState(0)
   
 
@@ -33,6 +32,9 @@ function App() {
     setToken("")
     setTransactions([])
     setErrorMessage("")
+  }
+  function handleBudgetSet(){
+    setBudgetVersion((v)=>v+1)
   }
 
   async function loadTransactions(){
@@ -71,33 +73,34 @@ function App() {
     }
   },[token])
 
-  useEffect(()=>{
-      if (token===""){
-        return
-      }
-      else{
-        loadTransactions() 
-      }
-  },[token])
+
   return(
     <div>
       {token ? (
         <div>
-          <AddTransactionForm token = {token} onAdded = {loadTransactions} onUnauthorized ={handleUnauthorized}/>
-          <TransactionList transactions={transactions}/>
-          <div>
-            <button onClick={handleLogout}>log out</button>
-          </div>
-          <h2>Set Budget</h2>
-          <SetBudgetForm token = {token} onUnauthorized ={handleUnauthorized} onBudgetSet={() => setBudgetVersion((v) => v + 1)}/>
-          <h2>Monthly Overview</h2>
-          <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
-          <TotalSummary transactions={transactions} onUnauthorized = {handleUnauthorized} token = {token} selectedMonth={selectedMonth}/>
-          <BudgetStatusList transactions={transactions} onUnauthorized={handleUnauthorized} token={token} selectedMonth={selectedMonth} budgetVersion={budgetVersion}/>
+          <nav>
+            <NavLink to="/overview">Overview</NavLink>
+            <NavLink to="/transactions">Transactions</NavLink>
+            <NavLink to="/budgets">Budget Setting</NavLink>
+            <button onClick={handleLogout}>Log out</button>
+          </nav>
+          <Routes>
+            <Route path="/transactions" element={<TransactionsPage token={token} loadTransactions={loadTransactions} onUnauthorized={handleUnauthorized}  transactions={transactions}/>} />
+            <Route path="/overview" element={<OverviewPages token={token} budgetVersion={budgetVersion} onUnauthorized={handleUnauthorized}  transactions={transactions}/>} />
+            <Route path="/budgets" element={<BudgetsPage token={token} setBudgetVersion={handleBudgetSet} handleUnauthorized={handleUnauthorized}/>}/>
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Routes>
         </div>
 
       ):(
-          <LoginForm onLogin={setToken}/>
+          <div>
+            <Routes>
+              <Route path="/login" element={<LoginPage onLogin={setToken}/>}/>
+              <Route path="/register" element={<RegisterPage onRegister={setToken}/>}/>
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </div>
+          
       )}
       {errorMessage && <p>{errorMessage}</p>}
     </div>
