@@ -1,18 +1,18 @@
 from fastapi import HTTPException,APIRouter
-import sqlite3
 from app.database import get_conn
-from app.model import User
+from app.model import UserLogin,UserRegister
 from app.auth import create_access_token
 import bcrypt
+import psycopg
 
 router = APIRouter(tags= ["user"])
 
 @router.post("/login")
-def check_login(user:User):
+def check_login(user:UserLogin):
     conn = get_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT password_hash, user_id FROM users WHERE user_name = ?",(user.user_name,))
+        cursor.execute("SELECT password_hash, user_id FROM users WHERE user_name = %s",(user.user_name,))
         output = cursor.fetchone()
         if output is None :
             raise HTTPException(status_code=401,detail="Invalid user name or password.")
@@ -27,17 +27,17 @@ def check_login(user:User):
     
 
 @router.post("/register")
-def add_user(user: User):
+def add_user(user: UserRegister):
     conn = get_conn()
     cursor = conn.cursor()
     try:
         hash1 = bcrypt.hashpw(user.password.encode("utf-8"),bcrypt.gensalt())
         password_hash = hash1.decode("utf-8")
-        cursor.execute("INSERT INTO users(user_name,password_hash) VALUES(?,?)",(user.user_name,password_hash))
+        cursor.execute("INSERT INTO users(user_name,password_hash) VALUES(%s,%s)",(user.user_name,password_hash))
         conn.commit()
         return {"message":"user register successfully"}
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400,detail="User name exists")
+    except psycopg.errors.UniqueViolation:
+        raise HTTPException(status_code=409,detail="User name exists")
     except Exception:
         conn.rollback()
         raise

@@ -5,4 +5,4 @@ def month_validate(month:str):
     try:
         datetime.strptime(month,"%Y-%m")
     except ValueError:
-        raise HTTPException(status_code= 400, detail="Month format error.")
+        raise HTTPException(status_code= 422, detail="Month format error.")

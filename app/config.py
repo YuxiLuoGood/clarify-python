@@ -1,6 +1,11 @@
 import os
+import dotenv
 
-SECRET_KEY = "dev-secret-key"
-algorithm = "HS256"
-DB_PATH = os.environ.get("DB_PATH","clarify.db")
-expire_minutes = 30
+dotenv.load_dotenv()
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+SECRET_KEY = os.environ.get("SECRET_KEY","c3b03c1e3381384575af12386117f894d3fb8bac6e0783fc5b43f2146747d613")
+FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN","http://localhost:5173")
+ALGORITHM = "HS256"
+EXPIRE_MINUTES = 5
