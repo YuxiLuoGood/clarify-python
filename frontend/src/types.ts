@@ -1,12 +1,10 @@
 export type Transaction = {
-    id: number
-    description: string
-    amount: number
-    category: string
-    date: string
-
+  id: number
+  description: string
+  amount: number
+  category: string
+  date: string
 }
-
 
 export type ValidationError = {
   loc: (string | number)[]
@@ -14,15 +12,17 @@ export type ValidationError = {
 }
 
 export type Summary = {
-  user_id:number
   category: string
-  total:number
+  total: number
 }
 
 export type BudgetStatus = {
-  remaining:number
-  spent:number
-  monthly_limit:number
-  category:string
-
+  category: string
+  monthly_limit: number
+  spent: number
+  remaining: number
 }
+
+// 添加或修改交易时发给后端的数据：和 Transaction 一样，只是没有 id。
+// Omit<类型, "字段"> 的意思是"去掉这个字段之后的类型"
+export type TransactionInput = Omit<Transaction, "id">

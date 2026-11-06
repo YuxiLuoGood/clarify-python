@@ -1,113 +1,72 @@
 import { useEffect, useState } from "react"
-import {type Transaction} from "./types"
-import { getErrorMessage } from "./utils"
-import { Routes, Route, NavLink, Navigate } from "react-router"
-import TransactionsPage from "./pages/TransactionsPage"
-import OverviewPages from "./pages/OverviewPage"
+import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router"
 import BudgetsPage from "./pages/BudgetsPage"
 import LoginPage from "./pages/LoginPage"
+import OverviewPage from "./pages/OverviewPage"
 import RegisterPage from "./pages/RegisterPage"
+import SetupPage from "./pages/SetupPage"
+import TransactionsPage from "./pages/TransactionsPage"
 
-
-
-
-
-
-
+// App 现在只管两件事：是否登录，以及显示哪个页面。
+// 每个页面的数据都由页面自己加载，切换页面时会重新加载最新数据。
 function App() {
+  const navigate = useNavigate()
+  const [token, setToken] = useState(() => localStorage.getItem("token") ?? "")
 
-  const [errorMessage,setErrorMessage] = useState("")
-  const [token,setToken] = useState(()=>localStorage.getItem("token")??"")
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [budgetVersion, setBudgetVersion] = useState(0)
-  
-
-
-  function handleUnauthorized(){
-    setToken("")
-    setErrorMessage("Session expired. Please log in again.")
-  }
-
-  function handleLogout(){
-    setToken("")
-    setTransactions([])
-    setErrorMessage("")
-  }
-  function handleBudgetSet(){
-    setBudgetVersion((v)=>v+1)
-  }
-
-  async function loadTransactions(){
-    try{
-      const response = await fetch("http://127.0.0.1:8000/transaction",{
-        method: "GET",
-        headers:{"Authorization":`Bearer ${token}`}
-      })
-      const data = await response.json()
-      if(response.ok){
-        setTransactions(data)
-        setErrorMessage("")
-      }
-      else{
-        setErrorMessage(getErrorMessage(data.detail))
-        if (response.status === 401){
-          handleUnauthorized()
-        }
-      }
-    }
-    catch(error){
-      console.error(error)
-      setErrorMessage("Cannot connect to the server.")
-    }
-  }
-
-
-
-
-  useEffect(()=>{
-    if (token===""){
+  useEffect(() => {
+    if (token === "") {
       localStorage.removeItem("token")
+    } else {
+      localStorage.setItem("token", token)
     }
-    else{
-      localStorage.setItem("token",token)
-    }
-  },[token])
+  }, [token])
 
+  function handleUnauthorized() {
+    setToken("")
+    navigate("/login", { state: { message: "Session expired. Please log in again." } })
+  }
 
-  return(
-    <div>
-      {token ? (
-        <div>
-          <nav>
-            <NavLink to="/overview">Overview</NavLink>
-            <NavLink to="/transactions">Transactions</NavLink>
-            <NavLink to="/budgets">Budget Setting</NavLink>
-            <button onClick={handleLogout}>Log out</button>
-          </nav>
-          <Routes>
-            <Route path="/transactions" element={<TransactionsPage token={token} loadTransactions={loadTransactions} onUnauthorized={handleUnauthorized}  transactions={transactions}/>} />
-            <Route path="/overview" element={<OverviewPages token={token} budgetVersion={budgetVersion} onUnauthorized={handleUnauthorized}  transactions={transactions}/>} />
-            <Route path="/budgets" element={<BudgetsPage token={token} setBudgetVersion={handleBudgetSet} handleUnauthorized={handleUnauthorized}/>}/>
-            <Route path="*" element={<Navigate to="/overview" replace />} />
-          </Routes>
+  function handleLogout() {
+    setToken("")
+  }
+
+  // 没登录：只能看到登录页和注册页，其他网址都跳到登录页
+  if (token === "") {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage onLogin={setToken} />} />
+        <Route path="/register" element={<RegisterPage onRegister={setToken} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
+  }
+
+  // <>...</> 叫 Fragment：把多个元素包在一起返回，但不会在页面上多出一层 div
+  return (
+    <>
+      <nav className="topbar">
+        <span className="brand">Clarify</span>
+        <div className="nav-links">
+          <NavLink to="/overview">Overview</NavLink>
+          <NavLink to="/transactions">Transactions</NavLink>
+          <NavLink to="/budgets">Budgets</NavLink>
         </div>
-
-      ):(
-          <div>
-            <Routes>
-              <Route path="/login" element={<LoginPage onLogin={setToken}/>}/>
-              <Route path="/register" element={<RegisterPage onRegister={setToken}/>}/>
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </div>
-          
-      )}
-      {errorMessage && <p>{errorMessage}</p>}
-    </div>
-    
+        <button className="button-secondary" onClick={handleLogout}>
+          Log out
+        </button>
+      </nav>
+      <main className="page">
+        <Routes>
+          <Route path="/overview" element={<OverviewPage token={token} onUnauthorized={handleUnauthorized} />} />
+          <Route path="/transactions" element={<TransactionsPage token={token} onUnauthorized={handleUnauthorized} />} />
+          <Route path="/budgets" element={<BudgetsPage token={token} onUnauthorized={handleUnauthorized} />} />
+          {/* 引导页不放在导航栏里：注册后自动进入，或者从 Budgets 页的链接进入 */}
+          <Route path="/setup" element={<SetupPage token={token} onUnauthorized={handleUnauthorized} />} />
+          <Route path="*" element={<Navigate to="/overview" replace />} />
+        </Routes>
+      </main>
+    </>
   )
-
-
 }
 
 export default App

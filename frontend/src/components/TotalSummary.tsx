@@ -1,81 +1,80 @@
-import { type Summary, type Transaction } from "../types";
 import { useEffect, useState } from "react"
-import { getErrorMessage} from "../utils"
+import { API_URL } from "../api"
+import { type Summary } from "../types"
+import { formatMoney, getErrorMessage } from "../utils"
+import CategorySelect from "./CategorySelect"
 
 type TotalSummaryProps = {
-    onUnauthorized:()=>void
-    token:string
-    transactions:Transaction[]
-    selectedMonth:string
+  token: string
+  selectedMonth: string
+  onUnauthorized: () => void
 }
 
-function TotalSummary({onUnauthorized,token,transactions,selectedMonth}:TotalSummaryProps){
-    const [inputCategory,setInputCategory] = useState("")
-    const [selectedCategory,setSelectedCategory] = useState("")
-    const [errorMessage,setErrorMessage] = useState("")
-    const [summary,setSummary] = useState<Summary[]>([])
+function TotalSummary({ token, selectedMonth, onUnauthorized }: TotalSummaryProps) {
+  // 下拉框选一次只触发一次变化，不像文字输入框每打一个字都变，
+  // 所以可以直接放进依赖数组，不再需要 Query 按钮
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [summary, setSummary] = useState<Summary[]>([])
+  const [errorMessage, setErrorMessage] = useState("")
 
-    async function loadSummary(){
-    if (selectedMonth ===""){
-        setErrorMessage("Please fill in specific date.")
+  async function loadSummary() {
+    try {
+      const params = new URLSearchParams({ month: selectedMonth })
+      if (selectedCategory !== "") {
+        params.append("category", selectedCategory)
+      }
+      const response = await fetch(`${API_URL}/summary?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await response.json()
+      if (response.status === 401) {
+        onUnauthorized()
         return
-    }
-    try{
-        const params = new URLSearchParams({month: selectedMonth})
-        if (selectedCategory!== ""){
-            params.append("category",selectedCategory)
-        }
-        const response = await fetch(`http://127.0.0.1:8000/summary?${params}`,{
-        method:"GET",
-        headers:{"Authorization":`Bearer ${token}`},
-        })
-        const data = await response.json()
-        if (response.ok){
-            setSummary(data)
-            setErrorMessage("")
-            
-        }
-        else{
-            if(response.status === 401){
-                onUnauthorized()
-                return
-            }
-            setErrorMessage(getErrorMessage(data.detail))
-        }
-    }
-    catch(error){
-        console.error(error)
-        setErrorMessage("Cannot connect to the server")
-    }
-}
-
-useEffect(()=>{
-    if(token === ""){
+      }
+      if (!response.ok) {
+        setErrorMessage(getErrorMessage(data.detail))
         return
+      }
+      setSummary(data)
+      setErrorMessage("")
+    } catch (error) {
+      console.error(error)
+      setErrorMessage("Cannot connect to the server.")
     }
-    else{
-        loadSummary()
-    }
-    
-},[token,selectedMonth,selectedCategory,transactions])
+  }
 
-return(
+  useEffect(() => {
+    if (selectedMonth === "") {
+      return
+    }
+    loadSummary()
+  }, [token, selectedMonth, selectedCategory])
+
+  return (
     <div>
-
-        <input placeholder = {"Category"} value = {inputCategory} onChange = {(e)=>setInputCategory(e.target.value)}/>
-        <button onClick={()=>{setSelectedCategory(inputCategory)}}>Query</button>
-        <ul>
-            {summary.map((t) => (
-            <li key={t.category}>
-                category: {t.category}
-                total:{t.total}
+      <div className="section-header">
+        <h3>Spending by category</h3>
+        <CategorySelect
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+          emptyLabel="All categories"
+        />
+      </div>
+      {summary.length === 0 ? (
+        <p className="empty">No spending recorded for this month.</p>
+      ) : (
+        <ul className="rows">
+          {summary.map((s) => (
+            <li key={s.category} className="row">
+              <span className="row-main">{s.category}</span>
+              <span className="amount">{formatMoney(s.total)}</span>
             </li>
-            ))}
+          ))}
         </ul>
-        {errorMessage&&<p>{errorMessage}</p>}
+      )}
+      {errorMessage && <p className="error">{errorMessage}</p>}
     </div>
-)
-
+  )
 }
 
 export default TotalSummary
