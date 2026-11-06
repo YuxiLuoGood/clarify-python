@@ -1,0 +1,7 @@
+venv/
+.env
+.env.example
+.env.docker
+.git/
+frontend/
+__pycache__/
