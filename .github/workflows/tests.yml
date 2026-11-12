@@ -53,7 +53,7 @@ jobs:
       - run: npm run build
 
   name: Show identity info
-        run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
+  run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
 
   deploy:
     needs: [backend, frontend]
