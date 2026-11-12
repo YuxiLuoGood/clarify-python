@@ -64,10 +64,13 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Show identity info
-        run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
+      - name: Show OIDC token claims
+        run: |
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "$TOKEN" | cut -d. -f2 | python3 -c "import sys,base64,json; p=sys.stdin.read().strip(); p+='='*(-len(p)%4); print(json.dumps({k:v for k,v in json.loads(base64.urlsafe_b64decode(p)).items() if k in ('iss','aud','sub')}, indent=2))"
 
-        
+
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
