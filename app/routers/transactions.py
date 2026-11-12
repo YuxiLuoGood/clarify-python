@@ -27,7 +27,7 @@ def get_transaction(user_id:int = Depends(get_current_user_id)):
     conn = get_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM transactions WHERE user_id =%s",(user_id,))
+        cursor.execute("SELECT * FROM transactions WHERE user_id =%s ORDER BY date DESC,id DESC" ,(user_id,))
         output = cursor.fetchall()
         result = []
         for out in output:
