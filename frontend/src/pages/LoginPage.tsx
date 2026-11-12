@@ -18,7 +18,7 @@ function LoginPage({ onLogin }: LoginPageProps) {
       <div className="auth-layout">
         <div className="auth-panel">
           <h1>Clarify</h1>
-          <p className="auth-tagline">See where your money goes, month by month.</p>
+          <p className="auth-tagline">See where your money goes, month by month!</p>
           <h2>Log in</h2>
           {message && <p className="notice">{message}</p>}
           <LoginForm onLogin={onLogin} />
