@@ -52,9 +52,6 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  name: Show identity info
-  run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
-
   deploy:
     needs: [backend, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -67,6 +64,10 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Show identity info
+        run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
+
+        
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
