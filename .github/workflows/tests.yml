@@ -52,7 +52,7 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-- name: Show identity info
+  name: Show identity info
         run: echo "repo=${{ github.repository }} ref=${{ github.ref }} event=${{ github.event_name }}"
 
   deploy:
